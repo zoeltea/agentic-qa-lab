@@ -26,13 +26,27 @@ def live_server():
             "--host", "127.0.0.1",
             "--port", "8091"
         ],
+        cwd="/home/zoeltea/my_work/agentic-qa-lab",
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env=dict(os.environ, AQA_DB_PATH=TEST_DB_PATH)
     )
     
-    # Wait for server ready
-    time.sleep(1.5)
+    # Wait for server ready by polling
+    import urllib.request
+    ready = False
+    for _ in range(30):
+        try:
+            with urllib.request.urlopen("http://127.0.0.1:8091/api/health", timeout=1) as resp:
+                if resp.status == 200:
+                    ready = True
+                    break
+        except Exception:
+            time.sleep(0.2)
+            
+    if not ready:
+        stdout, stderr = proc.communicate(timeout=2)
+        raise RuntimeError(f"Server failed to start on 8091: stdout={stdout}, stderr={stderr}")
     
     yield "http://127.0.0.1:8091"
     
