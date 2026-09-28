@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AQA Store Testbed - Agentic QA Lab</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col font-sans">
+
+    <!-- Top Navigation -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-sky-600 flex items-center justify-center text-white font-bold text-xl shadow-sm">
+                    🤖
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-slate-900 leading-tight">AQA Store Testbed</h1>
+                    <p class="text-xs text-slate-500">Autonomous QA & SDET Target Application</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-4">
+                <div class="hidden sm:flex items-center space-x-2 bg-slate-100 px-3 py-1.5 rounded-full text-xs font-medium text-slate-600">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="health-status">API: Online (Port 8091)</span>
+                </div>
+                
+                <!-- SDET Toggle Button -->
+                <button onclick="toggleSdetModal()" class="px-3 py-1.5 text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300 rounded-lg hover:bg-amber-200 transition">
+                    ⚙️ SDET Fault Injection
+                </button>
+
+                <!-- Cart Button -->
+                <button onclick="toggleCartModal()" class="relative p-2 text-slate-700 hover:text-sky-600 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <span id="cart-badge" class="absolute -top-1 -right-1 bg-sky-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Left: Product Catalog (2 Cols) -->
+        <section class="lg:col-span-2 space-y-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900">Katalog Produk</h2>
+                    <p class="text-sm text-slate-500">Pilih item untuk simulasi flow pembelian & automated testing</p>
+                </div>
+                <span id="product-count" class="text-xs bg-sky-50 text-sky-700 px-2.5 py-1 rounded-md font-medium">Loading items...</span>
+            </div>
+
+            <!-- Product Cards Grid -->
+            <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <!-- Injected via JavaScript -->
+            </div>
+        </section>
+
+        <!-- Right: Checkout / Order Box (1 Col) -->
+        <section class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm h-fit space-y-6 sticky top-24">
+            <h2 class="text-lg font-bold text-slate-900 flex items-center justify-between">
+                <span>Ringkasan Keranjang</span>
+                <span id="cart-total-items" class="text-xs font-normal text-slate-500">0 barang</span>
+            </h2>
+
+            <!-- Cart Items List -->
+            <div id="cart-items-container" class="divide-y divide-slate-100 max-h-60 overflow-y-auto space-y-2 pr-1">
+                <p class="text-sm text-slate-400 py-6 text-center italic">Keranjang masih kosong.</p>
+            </div>
+
+            <!-- Voucher Promo Section -->
+            <div class="pt-4 border-t border-slate-100 space-y-3">
+                <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider">Voucher Diskon</label>
+                <div class="flex space-x-2">
+                    <input type="text" id="voucher-input" placeholder="Contoh: DISKON10 / FLASH1" class="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 uppercase">
+                    <button onclick="applyVoucher()" id="btn-apply-voucher" class="px-4 py-2 bg-slate-800 text-white text-sm font-semibold rounded-lg hover:bg-slate-900 transition">
+                        Gunakan
+                    </button>
+                </div>
+                <div id="voucher-feedback" class="text-xs hidden p-2 rounded-lg font-medium"></div>
+            </div>
+
+            <!-- Price Breakdown -->
+            <div class="pt-4 border-t border-slate-100 space-y-2 text-sm">
+                <div class="flex justify-between text-slate-600">
+                    <span>Subtotal:</span>
+                    <span id="summary-subtotal" class="font-medium">Rp 0</span>
+                </div>
+                <div class="flex justify-between text-emerald-600">
+                    <span>Diskon:</span>
+                    <span id="summary-discount" class="font-medium">- Rp 0</span>
+                </div>
+                <div class="flex justify-between text-base font-bold text-slate-900 pt-2 border-t border-slate-100">
+                    <span>Total Bayar:</span>
+                    <span id="summary-total" class="text-sky-600">Rp 0</span>
+                </div>
+            </div>
+
+            <!-- Checkout Form Fields -->
+            <div class="space-y-3 pt-2">
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Nama Pemesan</label>
+                    <input type="text" id="input-customer-name" value="Budi Santoso" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Email</label>
+                    <input type="email" id="input-customer-email" value="budi.s@example.com" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Alamat Pengiriman</label>
+                    <input type="text" id="input-customer-address" value="Jl. Sudirman No. 45, Jakarta Pusat" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Metode Pembayaran</label>
+                    <select id="select-payment-method" class="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 outline-none">
+                        <option value="qris">QRIS Instant (Recommended)</option>
+                        <option value="bank_transfer">Virtual Account Bank</option>
+                        <option value="credit_card">Kartu Kredit</option>
+                        <option value="cod">Cash on Delivery</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button onclick="submitCheckout()" id="btn-checkout" disabled class="w-full py-3 px-4 bg-sky-600 hover:bg-sky-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-md transition flex items-center justify-center space-x-2">
+                <span id="btn-checkout-text">Bayar Sekarang</span>
+            </button>
+            <div id="checkout-error" class="text-xs text-rose-600 bg-rose-50 p-2.5 rounded-lg border border-rose-200 hidden"></div>
+        </section>
+    </main>
+
+    <!-- Modal: Order Success Confirmation (Cross-layer UI verification target) -->
+    <div id="order-success-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 text-center space-y-5 animate-in fade-in zoom-in duration-200">
+            <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-3xl">
+                ✓
+            </div>
+            <div>
+                <h3 class="text-xl font-bold text-slate-900" id="modal-success-title">Pembayaran Berhasil!</h3>
+                <p class="text-xs text-slate-500 mt-1">Order telah berhasil diproses oleh sistem testbed</p>
+            </div>
+            
+            <div class="bg-slate-50 p-4 rounded-xl text-left space-y-2 text-xs border border-slate-200">
+                <div class="flex justify-between">
+                    <span class="text-slate-500">Nomor Order:</span>
+                    <span id="modal-order-number" class="font-mono font-bold text-slate-800 select-all">ORD-XXXX</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-500">Status Pembayaran:</span>
+                    <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 font-bold rounded">PAID</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-500">Total Transaksi:</span>
+                    <span id="modal-order-total" class="font-bold text-sky-600">Rp 0</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-500">Voucher Terpakai:</span>
+                    <span id="modal-voucher-code" class="font-medium text-slate-700">-</span>
+                </div>
+            </div>
+
+            <button onclick="closeSuccessModal()" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold rounded-xl transition">
+                Selesai & Belanja Lagi
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal: SDET Fault Injection Console -->
+    <div id="sdet-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-amber-200 text-left space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center space-x-2">
+                    <span class="text-xl">⚙️</span>
+                    <h3 class="text-base font-bold text-slate-900">SDET Fault Injection Control</h3>
+                </div>
+                <button onclick="toggleSdetModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">&times;</button>
+            </div>
+
+            <p class="text-xs text-slate-600">
+                Panel ini digunakan untuk menguji kemampuan <strong>Multi-Layer Verification</strong> pada AI Agent. Aktifkan simulasi anomali berikut untuk menguji apakah agen dapat mendeteksi kegagalan backend meskipun UI menampilkan status sukses.
+            </p>
+
+            <div class="space-y-4 text-xs">
+                <label class="flex items-start space-x-3 p-3 bg-amber-50 rounded-xl border border-amber-200 cursor-pointer">
+                    <input type="checkbox" id="chk-silent-failure" class="mt-0.5 rounded text-amber-600 focus:ring-amber-500">
+                    <div>
+                        <span class="font-bold text-amber-900 block">Simulate Silent DB Failure</span>
+                        <span class="text-amber-700">API mengembalikan response 200 OK ke frontend (UI sukses), tetapi sengaja TIDAK menyimpan record ke database SQLite.</span>
+                    </div>
+                </label>
+
+                <label class="flex items-start space-x-3 p-3 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer">
+                    <input type="checkbox" id="chk-slow-db" class="mt-0.5 rounded text-sky-600 focus:ring-sky-500">
+                    <div>
+                        <span class="font-bold text-slate-900 block">Simulate Slow DB Latency (1500ms)</span>
+                        <span class="text-slate-600">Menambahkan artificial delay 1.5 detik pada endpoint checkout untuk menguji timeout assertion.</span>
+                    </div>
+                </label>
+            </div>
+
+            <div class="flex space-x-3 pt-2">
+                <button onclick="saveFaultConfig()" class="flex-1 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg transition text-xs">
+                    Simpan Konfigurasi
+                </button>
+                <button onclick="resetDatabase()" class="py-2 px-3 bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 font-bold rounded-lg transition text-xs">
+                    🔄 Reset DB & Seed
+                </button>
+            </div>
+            <div id="sdet-feedback" class="text-xs hidden p-2 rounded-lg font-medium"></div>
+        </div>
+    </div>
+
+    <!-- Frontend Core Logic -->
+    <script>
+        // State Management
+        let products = [];
+        let cart = {}; // product_id -> { product, quantity }
+        let appliedVoucher = null;
+
+        const formatIDR = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
+
+        // Fetch Initial Data
+        async function initApp() {
+            try {
+                const res = await fetch('/api/products');
+                products = await res.json();
+                renderProducts();
+                loadFaultConfig();
+            } catch (err) {
+                console.error("Failed to load products:", err);
+                document.getElementById('product-count').innerText = "Gagal memuat katalog";
+            }
+        }
+
+        // Render Products Grid
+        function renderProducts() {
+            const grid = document.getElementById('product-grid');
+            document.getElementById('product-count').innerText = `${products.length} Produk Tersedia`;
+            
+            grid.innerHTML = products.map(p => `
+                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition flex flex-col justify-between" id="product-card-${p.id}" data-sku="${p.sku}">
+                    <div class="h-44 bg-slate-100 relative overflow-hidden">
+                        <img src="${p.image_url}" alt="${p.name}" class="w-full h-full object-cover">
+                        <span class="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
+                            ${p.category}
+                        </span>
+                        <span class="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm text-slate-800 text-xs font-semibold px-2 py-0.5 rounded shadow-sm">
+                            Stok: <strong id="stock-${p.id}" class="text-sky-700">${p.stock}</strong>
+                        </span>
+                    </div>
+                    <div class="p-5 flex-1 flex flex-col justify-between space-y-4">
+                        <div>
+                            <span class="text-[11px] font-mono text-slate-400 block">${p.sku}</span>
+                            <h3 class="font-bold text-slate-900 text-sm line-clamp-1 mt-0.5">${p.name}</h3>
+                            <p class="text-xs text-slate-500 line-clamp-2 mt-1">${p.description || ''}</p>
+                        </div>
+                        <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+                            <span class="text-base font-extrabold text-slate-900">${formatIDR(p.price)}</span>
+                            <button onclick="addToCart(${p.id})" ${p.stock <= 0 ? 'disabled' : ''} class="px-3.5 py-1.5 bg-sky-600 hover:bg-sky-700 disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-bold rounded-lg transition shadow-sm" id="btn-add-${p.id}">
+                                ${p.stock <= 0 ? 'Habis' : '+ Keranjang'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Cart Actions
+        function addToCart(productId) {
+            const prod = products.find(p => p.id === productId);
+            if (!prod || prod.stock <= 0) return;
+
+            if (!cart[productId]) {
+                cart[productId] = { product: prod, quantity: 1 };
+            } else {
+                if (cart[productId].quantity < prod.stock) {
+                    cart[productId].quantity += 1;
+                }
+            }
+            updateCartView();
+        }
+
+        function updateCartQuantity(productId, delta) {
+            if (!cart[productId]) return;
+            cart[productId].quantity += delta;
+            if (cart[productId].quantity <= 0) {
+                delete cart[productId];
+            }
+            updateCartView();
+        }
+
+        function updateCartView() {
+            const container = document.getElementById('cart-items-container');
+            const items = Object.values(cart);
+            
+            const totalQuantity = items.reduce((sum, i) => sum + i.quantity, 0);
+            const subtotal = items.reduce((sum, i) => sum + (i.product.price * i.quantity), 0);
+
+            // Badge & Counts
+            const badge = document.getElementById('cart-badge');
+            if (totalQuantity > 0) {
+                badge.innerText = totalQuantity;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+            document.getElementById('cart-total-items').innerText = `${totalQuantity} barang`;
+
+            if (items.length === 0) {
+                container.innerHTML = `<p class="text-sm text-slate-400 py-6 text-center italic">Keranjang masih kosong.</p>`;
+                appliedVoucher = null;
+                resetVoucherUI();
+            } else {
+                container.innerHTML = items.map(it => `
+                    <div class="py-2.5 flex items-center justify-between text-xs" data-cart-sku="${it.product.sku}">
+                        <div class="flex-1 pr-2">
+                            <span class="font-bold text-slate-800 block truncate">${it.product.name}</span>
+                            <span class="text-slate-400">${formatIDR(it.product.price)} x ${it.quantity}</span>
+                        </div>
+                        <div class="flex items-center space-x-1.5">
+                            <button onclick="updateCartQuantity(${it.product.id}, -1)" class="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center justify-center">-</button>
+                            <span class="font-bold text-slate-900 w-4 text-center">${it.quantity}</span>
+                            <button onclick="updateCartQuantity(${it.product.id}, 1)" ${it.quantity >= it.product.stock ? 'disabled' : ''} class="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 font-bold flex items-center justify-center">+</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Recalculate Totals
+            let discountAmount = 0.0;
+            if (appliedVoucher && appliedVoucher.valid) {
+                if (appliedVoucher.discount_type === 'percent') {
+                    discountAmount = subtotal * (appliedVoucher.discount_value / 100.0);
+                } else {
+                    discountAmount = appliedVoucher.discount_value;
+                }
+            }
+
+            const total = Math.max(0.0, subtotal - discountAmount);
+
+            document.getElementById('summary-subtotal').innerText = formatIDR(subtotal);
+            document.getElementById('summary-discount').innerText = `- ${formatIDR(discountAmount)}`;
+            document.getElementById('summary-total').innerText = formatIDR(total);
+
+            // Button state
+            const btn = document.getElementById('btn-checkout');
+            btn.disabled = items.length === 0;
+        }
+
+        // Voucher Logic
+        async function applyVoucher() {
+            const codeInput = document.getElementById('voucher-input');
+            const code = codeInput.value.trim();
+            const feedback = document.getElementById('voucher-feedback');
+            
+            const subtotal = Object.values(cart).reduce((sum, i) => sum + (i.product.price * i.quantity), 0);
+            if (subtotal <= 0) {
+                showFeedback(feedback, "Tambahkan barang ke keranjang terlebih dahulu.", "error");
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/voucher/apply', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: code, order_subtotal: subtotal })
+                });
+                const data = await res.json();
+                
+                if (data.valid) {
+                    appliedVoucher = data;
+                    showFeedback(feedback, data.message, "success");
+                } else {
+                    appliedVoucher = null;
+                    showFeedback(feedback, data.message, "error");
+                }
+                updateCartView();
+            } catch (err) {
+                showFeedback(feedback, "Gagal menghubungi server voucher.", "error");
+            }
+        }
+
+        function resetVoucherUI() {
+            document.getElementById('voucher-input').value = '';
+            const feedback = document.getElementById('voucher-feedback');
+            feedback.classList.add('hidden');
+        }
+
+        function showFeedback(el, msg, type) {
+            el.innerText = msg;
+            el.classList.remove('hidden', 'bg-emerald-50', 'text-emerald-700', 'border-emerald-200', 'bg-rose-50', 'text-rose-700', 'border-rose-200');
+            if (type === 'success') {
+                el.classList.add('bg-emerald-50', 'text-emerald-700', 'border', 'border-emerald-200');
+            } else {
+                el.classList.add('bg-rose-50', 'text-rose-700', 'border', 'border-rose-200');
+            }
+        }
+
+        // Checkout Process
+        async function submitCheckout() {
+            const btn = document.getElementById('btn-checkout');
+            const btnText = document.getElementById('btn-checkout-text');
+            const errorEl = document.getElementById('checkout-error');
+            errorEl.classList.add('hidden');
+
+            const customerName = document.getElementById('input-customer-name').value;
+            const customerEmail = document.getElementById('input-customer-email').value;
+            const shippingAddress = document.getElementById('input-customer-address').value;
+            const paymentMethod = document.getElementById('select-payment-method').value;
+
+            const items = Object.values(cart).map(i => ({
+                product_id: i.product.id,
+                sku: i.product.sku,
+                quantity: i.quantity
+            }));
+
+            const payload = {
+                customer_name: customerName,
+                customer_email: customerEmail,
+                shipping_address: shippingAddress,
+                payment_method: paymentMethod,
+                voucher_code: appliedVoucher ? appliedVoucher.code : null,
+                items: items
+            };
+
+            btn.disabled = true;
+            btnText.innerText = "Memproses Transaksi...";
+
+            try {
+                const res = await fetch('/api/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.detail || "Terjadi kesalahan pada checkout.");
+                }
+
+                // Show Success Modal
+                document.getElementById('modal-order-number').innerText = data.order_number;
+                document.getElementById('modal-order-total').innerText = formatIDR(data.total_amount);
+                document.getElementById('modal-voucher-code').innerText = appliedVoucher ? appliedVoucher.code : '-';
+                document.getElementById('order-success-modal').classList.remove('hidden');
+
+                // Clear Cart
+                cart = {};
+                appliedVoucher = null;
+                resetVoucherUI();
+                updateCartView();
+                
+                // Refresh product stock
+                initApp();
+            } catch (err) {
+                errorEl.innerText = err.message;
+                errorEl.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btnText.innerText = "Bayar Sekarang";
+            }
+        }
+
+        function closeSuccessModal() {
+            document.getElementById('order-success-modal').classList.add('hidden');
+        }
+
+        // SDET Modal Functions
+        function toggleSdetModal() {
+            const modal = document.getElementById('sdet-modal');
+            modal.classList.toggle('hidden');
+        }
+
+        async function loadFaultConfig() {
+            try {
+                const res = await fetch('/api/admin/fault-injection');
+                const data = await res.json();
+                document.getElementById('chk-silent-failure').checked = !!data.simulate_silent_db_failure;
+                document.getElementById('chk-slow-db').checked = (data.simulate_slow_db_ms > 0);
+            } catch (e) {
+                console.error("Failed to load fault config", e);
+            }
+        }
+
+        async function saveFaultConfig() {
+            const silent = document.getElementById('chk-silent-failure').checked;
+            const slow = document.getElementById('chk-slow-db').checked;
+            const feedback = document.getElementById('sdet-feedback');
+
+            try {
+                const res = await fetch('/api/admin/fault-injection', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        simulate_silent_db_failure: silent,
+                        simulate_slow_db_ms: slow ? 1500 : 0,
+                        simulate_corrupted_stock: false
+                    })
+                });
+                const data = await res.json();
+                showFeedback(feedback, "Konfigurasi Fault Injection tersimpan!", "success");
+            } catch (err) {
+                showFeedback(feedback, "Gagal menyimpan konfigurasi.", "error");
+            }
+        }
+
+        async function resetDatabase() {
+            if (!confirm("Apakah Anda yakin ingin mereset & me-reseed database ke kondisi awal?")) return;
+            try {
+                await fetch('/api/admin/reset-db', { method: 'POST' });
+                alert("Database berhasil di-reset dan di-reseed!");
+                location.reload();
+            } catch (err) {
+                alert("Gagal mereset database.");
+            }
+        }
+
+        // Start on load
+        window.onload = initApp;
+    </script>
+</body>
+</html>
