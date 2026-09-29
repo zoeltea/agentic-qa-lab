@@ -77,20 +77,21 @@ def run_demo():
         print(f"  4a. Open store : {'✅ OK' if res_open.ok else '❌ FAILED'}")
 
         # Step 4b: Add Mechanical Keyboard
-        res_add = b_tool.run(action="add_to_cart", params={"product_id": 1})
+        res_add = b_tool.run(action="add_to_cart", product_id=1)
         print(f"  4b. Add to cart: {'✅ OK' if res_add.ok else '❌ FAILED'}")
 
         # Step 4c: Apply Voucher
-        res_vouch = b_tool.run(action="apply_voucher", params={"code": "DISKON10"})
+        res_vouch = b_tool.run(action="apply_voucher", code="DISKON10")
         print(f"  4c. Apply vouch: {'✅ OK' if res_vouch.ok else '❌ FAILED'} -> {res_vouch.data.get('message')}")
 
         # Step 4d: Submit Checkout
-        res_checkout = b_tool.run(action="checkout", params={
-            "name": "Phase 2 Automated Runner",
-            "email": "runner.phase2@example.com",
-            "address": "Jl. Standalone Runner No. 2",
-            "payment_method": "qris"
-        })
+        res_checkout = b_tool.run(
+            action="checkout",
+            customer_name="Phase 2 Automated Runner",
+            customer_email="runner.phase2@example.com",
+            shipping_address="Jl. Standalone Runner No. 2",
+            payment_method="qris",
+        )
         print(f"  4d. Checkout   : {'✅ OK' if res_checkout.ok else '❌ FAILED'}")
         if res_checkout.ok:
             print(f"      🎉 Order Number: {res_checkout.data.get('order_number')} (Total: {res_checkout.data.get('total_amount')})")
