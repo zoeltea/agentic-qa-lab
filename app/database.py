@@ -8,21 +8,25 @@ from typing import List, Dict, Any, Optional
 
 DB_PATH = os.getenv("AQA_DB_PATH", os.path.join(os.path.dirname(__file__), "testbed.sqlite3"))
 
-def get_db_connection() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH)
+def get_db_connection(db_path: Optional[str] = None) -> sqlite3.Connection:
+    target_path = db_path or os.getenv("AQA_DB_PATH", os.path.join(os.path.dirname(__file__), "testbed.sqlite3"))
+    conn = sqlite3.connect(target_path)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
-def init_db(reset: bool = False):
+def init_db(reset: bool = False, db_path: Optional[str] = None):
     """Initialize database tables and seed initial test data."""
-    if reset and os.path.exists(DB_PATH):
+    target_path = db_path or os.getenv("AQA_DB_PATH", os.path.join(os.path.dirname(__file__), "testbed.sqlite3"))
+    if reset and os.path.exists(target_path):
         try:
-            os.remove(DB_PATH)
+            os.remove(target_path)
         except OSError:
             pass
 
-    conn = get_db_connection()
+    conn = sqlite3.connect(target_path)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
     with conn:
         # 1. Products Table
         conn.execute("""
